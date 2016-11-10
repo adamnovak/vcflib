@@ -158,7 +158,6 @@ void vcf2fasta(VariantCallFile& variantFile, FastaReference& reference, string& 
         // write alt/ref seqs for current variant based on phased genotypes
         for (vector<string>::iterator s = var.sampleNames.begin(); s != var.sampleNames.end(); ++s) {
             string& sample = *s;
-            cerr << sample << endl;
             string genotype = var.getGenotype(sample);
             replace(genotype.begin(), genotype.end(), '/', '|');
             vector<int> gt = decomposePhasedGenotype(genotype);
