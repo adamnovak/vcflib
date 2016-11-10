@@ -26,11 +26,14 @@ public:
     int linewidth;
 
     void write(string sequence) {
+        size_t offset = 0;
         linebuffer += sequence;
-        while (linebuffer.length() > linewidth) {
-            fastafile << linebuffer.substr(0, linewidth) << endl;
-            linebuffer = linebuffer.substr(linewidth);
+        while (linebuffer.length() - offset > linewidth) {
+            // Don't flush the file after every line.
+            fastafile << linebuffer.substr(offset, linewidth) << '\n';
+            offset += linewidth;
         }
+        linebuffer = linebuffer.substr(offset);
     }
 
     SampleFastaFile(void) { }
@@ -51,8 +54,8 @@ public:
 
     ~SampleFastaFile(void) {
         if (fastafile.is_open()) {
-            write(""); // flush
-            fastafile << linebuffer << endl;
+            write("");
+            fastafile << linebuffer << endl; // flush
             fastafile.close();
         }
     }
@@ -114,9 +117,10 @@ void vcf2fasta(VariantCallFile& variantFile, FastaReference& reference, string& 
     Variant var(variantFile);
     map<string, int> lastPloidies;
     while (variantFile.getNextVariant(var)) {
+        cerr << "variant " << var.sequenceName << ":" << var.position << endl;
         if (!var.isPhased()) {
-            cerr << "variant " << var.sequenceName << ":" << var.position << " is not phased, cannot convert to fasta" << endl;
-            exit(1);
+            //cerr << "variant " << var.sequenceName << ":" << var.position << " is not phased, cannot convert to fasta" << endl;
+            //exit(1);
         }
         map<string, int> ploidies;
         getPloidies(var, ploidies, defaultPloidy);
@@ -143,6 +147,7 @@ void vcf2fasta(VariantCallFile& variantFile, FastaReference& reference, string& 
         if (var.position < lastEnd) {
             cerr << var.position << " vs " << lastEnd << endl;
             cerr << "overlapping or out-of-order variants at " << var.sequenceName << ":" << var.position << endl;
+            continue;
             exit(1);
         }
         // get reference sequences implied by last->current variant
@@ -153,7 +158,11 @@ void vcf2fasta(VariantCallFile& variantFile, FastaReference& reference, string& 
         // write alt/ref seqs for current variant based on phased genotypes
         for (vector<string>::iterator s = var.sampleNames.begin(); s != var.sampleNames.end(); ++s) {
             string& sample = *s;
-            vector<int> gt = decomposePhasedGenotype(var.getGenotype(sample));
+            cerr << sample << endl;
+            string genotype = var.getGenotype(sample);
+            replace(genotype.begin(), genotype.end(), '/', '|');
+            vector<int> gt = decomposePhasedGenotype(genotype);
+            replace(gt.begin(), gt.end(), NULL_ALLELE, 0);
             // assume no-call == ref?
             if (gt.empty()) {
                 cerr << "empty genotype for sample " << *s << " at " << var.sequenceName << ":" << var.position << endl;
@@ -161,7 +170,8 @@ void vcf2fasta(VariantCallFile& variantFile, FastaReference& reference, string& 
             }
             int i = 0;
             for (vector<int>::iterator g = gt.begin(); g != gt.end(); ++g, ++i) {
-                outputs[sample].at(i)->write(ref5prime+var.alleles.at(*g));
+                outputs[sample].at(i)->write(ref5prime);
+                outputs[sample].at(i)->write(var.alleles.at(*g));
             }
         }
         lastPos = var.position - 1;
