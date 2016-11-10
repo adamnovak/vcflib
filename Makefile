@@ -131,8 +131,10 @@ INCLUDES = -Itabixpp/htslib -I$(INC_DIR) -L. -Ltabixpp/htslib
 LDFLAGS = -L$(LIB_DIR) -lvcflib -lhts -lpthread -lz -lm
 
 
-all: $(OBJECTS) $(BINS)
+all: $(OBJECTS) $(BINS) scriptToBin
 
+scriptToBin: $(BINS)
+	cp scripts/* bin
 
 GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always)
 
