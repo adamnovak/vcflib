@@ -139,7 +139,9 @@ HTS_LDFLAGS ?= -L$(VCF_LIB_LOCAL)/tabixpp/htslib -lhts -lbz2 -lm -lz -llzma -pth
 
 
 INCLUDES = $(HTS_INCLUDES) -I$(INC_DIR) 
-LDFLAGS += -L$(LIB_DIR) -lvcflib $(HTS_LDFLAGS) -lpthread -lz -lm -llzma -lbz2
+LDFLAGS += $(HTS_LDFLAGS) -lpthread -lz -lm -llzma -lbz2
+# Only ask for -lvcflib when linking binaries, not vcflib itself
+BIN_LDFLAGS += -L$(LIB_DIR) -lvcflib $(LDFLAGS)
 
 
 
@@ -204,7 +206,7 @@ $(SHORTBINS): pre
 	$(MAKE) $(BIN_DIR)/$@
 
 $(BINS): $(BIN_SOURCES) libvcflib.a $(OBJECTS) $(SMITHWATERMAN) $(FASTAHACK) $(DISORDER) $(LEFTALIGN) $(INDELALLELE) $(SSW) $(FILEVERCMP) pre intervaltree
-	$(CXX) $(CPPFLAGS) src/$(notdir $@).cpp -o $@ $(INCLUDES) $(LDFLAGS) $(CXXFLAGS) -DVERSION=\"$(GIT_VERSION)\"
+	$(CXX) $(CPPFLAGS) src/$(notdir $@).cpp -o $@ $(INCLUDES) $(BIN_LDFLAGS) $(CXXFLAGS) -DVERSION=\"$(GIT_VERSION)\"
 
 libvcflib.a: $(OBJECTS) $(SMITHWATERMAN) $(REPEATS) $(FASTAHACK) $(DISORDER) $(LEFTALIGN) $(INDELALLELE) $(SSW) $(FILEVERCMP) $(TABIX) pre
 	ar rs libvcflib.a $(OBJECTS) smithwaterman/sw.o $(FASTAHACK) $(SSW) $(FILEVERCMP) $(TABIX)
